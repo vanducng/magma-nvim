@@ -7,7 +7,7 @@ from typing import (
     Callable,
     IO,
 )
-from contextlib import AbstractContextManager
+import contextlib
 from enum import Enum
 from abc import ABC, abstractmethod
 from math import floor
@@ -209,7 +209,7 @@ class Output:
 def to_outputchunk(
     alloc_file: Callable[
         [str, str],
-        AbstractContextManager[Tuple[str, IO[bytes]]],
+        contextlib.AbstractContextManager[Tuple[str, IO[bytes]]],
     ],
     data: Dict[str, Any],
     metadata: Dict[str, Any],
