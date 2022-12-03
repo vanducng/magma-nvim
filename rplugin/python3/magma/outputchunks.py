@@ -206,9 +206,7 @@ class Output:
 
 
 def to_outputchunk(
-    alloc_file: Callable[
-        [str, str],
-    ],
+    alloc_file: Callable,
     data: Dict[str, Any],
     metadata: Dict[str, Any],
 ) -> OutputChunk:
