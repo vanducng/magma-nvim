@@ -4,6 +4,7 @@ import os
 
 import pynvim
 from pynvim import Nvim
+id
 
 from magma.options import MagmaOptions
 from magma.utils import MagmaException, nvimui, DynamicPosition, Span

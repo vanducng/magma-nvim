@@ -69,6 +69,17 @@ class MagmaBuffer:
         assert " " not in autocmd
         self.nvim.command(f"doautocmd User {autocmd}")
 
+    def _delete_all_cells_in_span(self, span: Span) -> None:
+        for output_span in reversed(list(self.outputs.keys())):
+            if (
+                output_span.begin in span
+                or output_span.end in span
+                or span.begin in output_span
+                or span.end in output_span
+            ):
+                self.outputs[output_span].clear_interface()
+                del self.outputs[output_span]
+
     def deinit(self) -> None:
         self._doautocmd("MagmaDeinitPre")
         self.runtime.deinit()
@@ -85,8 +96,11 @@ class MagmaBuffer:
         self.runtime.restart()
 
     def run_code(self, code: str, span: Span) -> None:
+        self._delete_all_cells_in_span(span)
         self.runtime.run_code(code)
+
         if span in self.outputs:
+            self.outputs[span].clear_interface()
             del self.outputs[span]
         self.outputs[span] = OutputBuffer(self.nvim, self.canvas, self.options)
         self.queued_outputs.put(span)
@@ -108,11 +122,8 @@ class MagmaBuffer:
 
     def _check_if_done_running(self) -> None:
         # TODO: refactor
-        is_idle = ( self.current_output is None
-            or not self.current_output in self.outputs
-        ) or ( self.current_output is not None
-            and self.outputs[self.current_output].output.status
-            == OutputStatus.DONE
+        is_idle = (self.current_output is None or not self.current_output in self.outputs) or (
+            self.current_output is not None and self.outputs[self.current_output].output.status == OutputStatus.DONE
         )
         if is_idle and not self.queued_outputs.empty():
             key = self.queued_outputs.get_nowait()
@@ -125,9 +136,7 @@ class MagmaBuffer:
         if self.current_output is None or not self.current_output in self.outputs:
             did_stuff = self.runtime.tick(None)
         else:
-            did_stuff = self.runtime.tick(
-                self.outputs[self.current_output].output
-            )
+            did_stuff = self.runtime.tick(self.outputs[self.current_output].output)
         if did_stuff:
             self.update_interface()
         if not was_ready and self.runtime.is_ready():
@@ -175,9 +184,8 @@ class MagmaBuffer:
         if self.selected_cell is None:
             return
 
+        self.outputs[self.selected_cell].clear_interface()
         del self.outputs[self.selected_cell]
-
-        self.update_interface()
 
     def update_interface(self) -> None:
         if self.buffer.number != self.nvim.current.buffer.number:
@@ -246,8 +254,4 @@ class MagmaBuffer:
             self.outputs[span].show(span.end)
 
     def _get_content_checksum(self) -> str:
-        return hashlib.md5(
-            "\n".join(
-                self.nvim.current.buffer.api.get_lines(0, -1, True)
-            ).encode("utf-8")
-        ).hexdigest()
+        return hashlib.md5("\n".join(self.nvim.current.buffer.api.get_lines(0, -1, True)).encode("utf-8")).hexdigest()

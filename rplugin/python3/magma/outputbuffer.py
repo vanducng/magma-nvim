@@ -103,9 +103,7 @@ class OutputBuffer:
         self.display_buffer.append(lines)
 
         # Open output window
-        if self.display_window is None:
-            return
-
+        assert self.display_window is None
         if win_row < win_height:
             self.display_window = self.nvim.funcs.nvim_open_win(
                 self.display_buffer.number,
